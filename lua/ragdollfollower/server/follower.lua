@@ -184,7 +184,7 @@ net.Receive("ragdollfollower_sync", function(len, ply)
 			local c = tab.Controller
 			local f = tab.Follower
 			for i = 0, c:GetPhysicsObjectCount() - 1 do
-				local cPo = f:GetPhysicsObjectNum(i)
+				local cPo = c:GetPhysicsObjectNum(i)
 				local fPo = f:GetPhysicsObjectNum(i)
 				fPo:SetPos(cPo:GetPos())
 				fPo:SetAngles(cPo:GetAngles())
