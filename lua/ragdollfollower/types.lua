@@ -1,0 +1,13 @@
+---@class RagdollFollowerConstraintInfo
+---@field Controller Entity
+---@field Follower Entity
+---@field Bones string[]
+---@field ConstraintType string
+
+---@class PanelChildren
+
+---@class PanelState
+
+---@alias EntityTriplet {[1]: Entity, [2]: Entity, [3]: Entity}
+
+---@alias StringSet {[string]: true}
