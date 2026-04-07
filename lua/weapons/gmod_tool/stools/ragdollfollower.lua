@@ -161,3 +161,8 @@ TOOL.Information = {
 	{ name = "right", stage = 0 },
 	{ name = "reload" },
 }
+
+concommand.Add("ragdollfollower_sync", function(ply, cmd, args, argStr)
+	net.Start("ragdollfollower_sync")
+	net.SendToServer()
+end)

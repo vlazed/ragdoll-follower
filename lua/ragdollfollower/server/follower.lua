@@ -173,3 +173,27 @@ hook.Add("EntityRemoved", "RagdollFollower_ConstraintRemoved_Entity", function(e
 		updateView()
 	end
 end)
+
+util.AddNetworkString("ragdollfollower_sync")
+net.Receive("ragdollfollower_sync", function(len, ply)
+	for _, follower in ipairs(ents.FindByClass("logic_collision_pair")) do
+		---@cast follower Entity
+		---@type RagdollFollowerConstraintInfo
+		local tab = follower:GetTable()
+		if tab and tab.Type == "RagdollFollower" then
+			local c = tab.Controller
+			local f = tab.Follower
+			for i = 0, c:GetPhysicsObjectCount() - 1 do
+				local cPo = f:GetPhysicsObjectNum(i)
+				local fPo = f:GetPhysicsObjectNum(i)
+				fPo:SetPos(cPo:GetPos())
+				fPo:SetAngles(cPo:GetAngles())
+			end
+			for i = 0, c:GetBoneCount() - 1 do
+				f:ManipulateBoneAngles(i, c:GetManipulateBoneAngles(i))
+				f:ManipulateBonePosition(i, c:GetManipulateBonePosition(i))
+				f:ManipulateBoneScale(i, c:GetManipulateBoneScale(i))
+			end
+		end
+	end
+end)
