@@ -1,6 +1,6 @@
 ---@class RagdollFollowerConstraintInfo
----@field Controller Entity
----@field Follower Entity
+---@field Ent1 Entity
+---@field Ent2 Entity
 ---@field Bones string[]
 ---@field ConstraintType string
 

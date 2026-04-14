@@ -104,12 +104,7 @@ function TOOL:LeftClick(tr)
 		end
 
 		-- add weld
-		AddFollower(controller, follower, {
-			Controller = controller,
-			Follower = follower,
-			Bones = bones,
-			ConstraintType = "Weld",
-		})
+		AddFollower(controller, follower, bones, "Weld")
 
 		-- Clear the objects so we're ready to go again
 		self:ClearObjects()

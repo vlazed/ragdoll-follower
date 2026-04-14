@@ -27,8 +27,8 @@ local function updateView()
 	net.Start("ragdollfollower_updateview")
 	net.WriteUInt(count, 13)
 	for _, follower in ipairs(followers) do
-		net.WriteEntity(follower.Controller)
-		net.WriteEntity(follower.Follower)
+		net.WriteEntity(follower.Ent1)
+		net.WriteEntity(follower.Ent2)
 		net.WriteEntity(follower)
 	end
 	net.Broadcast()
@@ -37,22 +37,23 @@ net.Receive("ragdollfollower_updateview", function(len, ply)
 	updateView()
 end)
 
----@param Controller Entity
----@param Follower Entity
----@param ConstraintTable RagdollFollowerConstraintInfo
-function AddFollower(Controller, Follower, ConstraintTable)
-	if not IsValid(Controller) then
+---@param Ent1 Entity
+---@param Ent2 Entity
+---@param Bones string[]
+---@param ConstraintType string
+function AddFollower(Ent1, Ent2, Bones, ConstraintType)
+	if not IsValid(Ent1) then
 		return false
 	end
-	if not IsValid(Follower) then
+	if not IsValid(Ent2) then
 		return false
 	end
-	if Controller == Follower then
+	if Ent1 == Ent2 then
 		return false
 	end
 
-	local bones = ConstraintTable.Bones
-	local constraintType = ConstraintTable.ConstraintType
+	local bones = Bones
+	local constraintType = ConstraintType
 
 	---@diagnostic disable-next-line
 	if istable(RAGDOLLPUPPETEER_PLAYERS) and not istable(boneMap) then
@@ -64,51 +65,47 @@ function AddFollower(Controller, Follower, ConstraintTable)
 	---@type integer[]
 	local map
 	if boneMap then
-		map = boneMap.getPhysMap(Controller, Follower, boneMap.getMap(Controller, Follower))
+		map = boneMap.getPhysMap(Ent1, Ent2, boneMap.getMap(Ent1, Ent2))
 	end
 
-	if constraints[Controller] then
-		for _, con in ipairs(constraints[Controller]) do
+	if constraints[Ent1] then
+		for _, con in ipairs(constraints[Ent1]) do
 			con:Remove()
 		end
 	end
-	constraints[Controller] = {}
+	constraints[Ent1] = {}
 
 	for _, boneName in ipairs(bones) do
 		---We store a list of bone names, rather than physics object ids.
 		---We still check if we get a physics object for the source. If the
 		---physics object doesn't exist on the source, then let's remove
 		---it from the bone name
-		local sourcePhysBone =
-			Controller:GetPhysicsObjectNum(boneToPhysBone(Controller, Controller:LookupBone(boneName)))
-		local targetPhysBone = Follower:GetPhysicsObjectNum(sourcePhysBone and sourcePhysBone:GetIndex() or -1)
+		local sourcePhysBone = Ent1:GetPhysicsObjectNum(boneToPhysBone(Ent1, Ent1:LookupBone(boneName)))
+		local targetPhysBone = Ent2:GetPhysicsObjectNum(sourcePhysBone and sourcePhysBone:GetIndex() or -1)
 		if map then
-			targetPhysBone = sourcePhysBone
-				and map[sourcePhysBone]
-				and Follower:GetPhysicsObjectNum(map[sourcePhysBone])
+			targetPhysBone = sourcePhysBone and map[sourcePhysBone] and Ent2:GetPhysicsObjectNum(map[sourcePhysBone])
 		end
 
 		if IsValid(sourcePhysBone) and IsValid(targetPhysBone) then
 			targetPhysBone:SetPos(sourcePhysBone:GetPos())
 			targetPhysBone:SetAngles(sourcePhysBone:GetAngles())
-			table.insert(
-				constraints[Controller],
-				fc[constraintType](Controller, Follower, sourcePhysBone, targetPhysBone)
-			)
+			table.insert(constraints[Ent1], fc[constraintType](Ent1, Ent2, sourcePhysBone, targetPhysBone))
 		end
 	end
 
-	local noCollide = constraint.FindConstraintEntity(Controller, "RagdollFollower")
+	print(Ent1, Ent2)
+
+	local noCollide = constraint.FindConstraintEntity(Ent1, "RagdollFollower")
 	if not IsValid(noCollide) then
-		noCollide = constraint.NoCollide(Controller, Follower, 0, 0, false)
+		noCollide = constraint.NoCollide(Ent1, Ent2, 0, 0, false)
 	end
-	constraint.AddConstraintTable(Controller, noCollide, Follower)
+	constraint.AddConstraintTable(Ent1, noCollide, Ent2)
 	noCollide:SetTable({
+		Ent1 = Ent1,
+		Ent2 = Ent2,
+		Bones = Bones,
+		ConstraintType = ConstraintType,
 		Type = "RagdollFollower",
-		Controller = Controller,
-		Follower = Follower,
-		Bones = bones,
-		ConstraintType = constraintType,
 	})
 
 	updateView()
@@ -129,7 +126,7 @@ function RemoveFollower(Controller)
 	updateView()
 end
 
-duplicator.RegisterConstraint("RagdollFollower", AddFollower, "Controller", "Follower", "ConstraintTable")
+duplicator.RegisterConstraint("RagdollFollower", AddFollower, "Ent1", "Ent2", "Bones", "ConstraintType")
 
 util.AddNetworkString("ragdollfollower_add")
 net.Receive("ragdollfollower_add", function(len, ply)
@@ -138,14 +135,7 @@ net.Receive("ragdollfollower_add", function(len, ply)
 	local bones = net.ReadTable(true)
 	local constraint = net.ReadString()
 
-	PrintTable(bones)
-
-	AddFollower(controller, follower, {
-		Controller = controller,
-		Follower = follower,
-		Bones = bones,
-		ConstraintType = constraint,
-	})
+	AddFollower(controller, follower, bones, constraint)
 end)
 
 util.AddNetworkString("ragdollfollower_select")
@@ -156,10 +146,11 @@ net.Receive("ragdollfollower_select", function(len, ply)
 	print("selected", followerInfo)
 	print("count", controller:GetPhysicsObjectCount())
 	PrintTable(followerInfo)
+	print(controller)
 	if istable(followerInfo) then
 		net.Start("ragdollfollower_select")
-		net.WriteEntity(followerInfo.Controller)
-		net.WriteEntity(followerInfo.Follower)
+		net.WriteEntity(followerInfo.Ent1)
+		net.WriteEntity(followerInfo.Ent2)
 		net.WriteTable(followerInfo.Bones, true)
 		net.WriteString(followerInfo.ConstraintType)
 		net.WriteUInt(controller:GetPhysicsObjectCount() - 1, 5)
@@ -181,8 +172,8 @@ net.Receive("ragdollfollower_sync", function(len, ply)
 		---@type RagdollFollowerConstraintInfo
 		local tab = follower:GetTable()
 		if tab and tab.Type == "RagdollFollower" then
-			local c = tab.Controller
-			local f = tab.Follower
+			local c = tab.Ent1
+			local f = tab.Ent2
 			for i = 0, c:GetPhysicsObjectCount() - 1 do
 				local cPo = c:GetPhysicsObjectNum(i)
 				local fPo = f:GetPhysicsObjectNum(i)
