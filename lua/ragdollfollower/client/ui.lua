@@ -111,6 +111,7 @@ function ui.HookPanel(panelChildren, panelState)
 	local function populateBones(controller, follower, boneSet, constraint, count)
 		boneList:Clear()
 
+		print(controller)
 		print("populate bones")
 		---@type BoneCheckbox[]
 		local boneCheckboxes = {}
@@ -150,6 +151,16 @@ function ui.HookPanel(panelChildren, panelState)
 			local line = entityList:AddLine(tostring(entity[1]), tostring(entity[2]))
 			line.controller = entity[1]
 			line.constraint = entity[3]
+
+			local function removeLineOnDelete(ent)
+				if IsValid(line) and IsValid(ent) then
+					line:Remove()
+				end
+			end
+
+			entity[1]:CallOnRemove("RagdollFollower_DeleteLine", removeLineOnDelete)
+			entity[2]:CallOnRemove("RagdollFollower_DeleteLine", removeLineOnDelete)
+			entity[3]:CallOnRemove("RagdollFollower_DeleteLine", removeLineOnDelete)
 		end
 	end
 
