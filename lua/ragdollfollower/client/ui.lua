@@ -111,11 +111,8 @@ function ui.HookPanel(panelChildren, panelState)
 	local function populateBones(controller, follower, boneSet, constraint, count)
 		boneList:Clear()
 
-		print(controller)
-		print("populate bones")
 		---@type BoneCheckbox[]
 		local boneCheckboxes = {}
-		print("count", count)
 		for i = 0, count do
 			local name = controller:GetBoneName(controller:TranslatePhysBoneToBone(i))
 			if name then
@@ -143,13 +140,13 @@ function ui.HookPanel(panelChildren, panelState)
 
 	---@param entities EntityTriplet[]
 	local function populateEntities(entities)
-		print("clear list")
 		entityList:Clear()
 
 		for _, entity in ipairs(entities) do
 			---@class EntityLine: DListView_Line
 			local line = entityList:AddLine(tostring(entity[1]), tostring(entity[2]))
 			line.controller = entity[1]
+			line.follower = entity[2]
 			line.constraint = entity[3]
 
 			local function removeLineOnDelete(ent)
@@ -167,7 +164,9 @@ function ui.HookPanel(panelChildren, panelState)
 	---@param index integer
 	---@param row EntityLine
 	function entityList:OnRowSelected(index, row)
-		print("row selected")
+		panelState.controller = row.controller
+		panelState.follower = row.follower
+
 		net.Start("ragdollfollower_select")
 		net.WriteEntity(row.controller)
 		net.WriteEntity(row.constraint)
@@ -192,8 +191,6 @@ function ui.HookPanel(panelChildren, panelState)
 		local bones = net.ReadTable(true)
 		local constraint = net.ReadString()
 		local count = net.ReadUInt(5)
-
-		PrintTable(bones)
 
 		local boneSet = {}
 		for _, bone in ipairs(bones) do

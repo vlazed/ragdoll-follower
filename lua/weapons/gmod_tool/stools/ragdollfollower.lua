@@ -139,6 +139,8 @@ TOOL:BuildConVarList()
 local ui = include("ragdollfollower/client/ui.lua")
 
 ---@class PanelState
+---@field follower Entity
+---@field controller Entity
 local panelState = {
 	follower = NULL,
 	controller = NULL,
@@ -149,6 +151,37 @@ function TOOL.BuildCPanel(cPanel)
 	local panelChildren = ui.ConstructPanel(cPanel, panelState)
 	ui.HookPanel(panelChildren, panelState)
 end
+
+TOOL.IsRagdollFollower = true
+
+local ply = LocalPlayer()
+local function ragdollFollowerEquipped()
+	ply = IsValid(ply) and ply or LocalPlayer()
+
+	local weap = ply:GetActiveWeapon()
+	local tool = ply:GetTool()
+	return weap:GetClass() == "gmod_tool" and tool and tool.IsRagdollFollower
+end
+
+local GREEN = Color(0, 255, 0)
+local RED = Color(255, 0, 0)
+local BLUE = Color(0, 0, 255)
+hook.Remove("PreDrawHalos", "ragdollfollower_halos")
+hook.Add("PreDrawHalos", "ragdollfollower_halos", function()
+	local controller, follower = panelState.controller, panelState.follower
+	if IsValid(controller) and IsValid(follower) and ragdollFollowerEquipped() then
+		halo.Add({ controller }, GREEN, 2, 2, 1, true, true)
+		halo.Add({ follower }, RED, 2, 2, 1, true, true)
+	end
+end)
+
+hook.Remove("PreDrawHalos", "ragdollfollower_lines")
+hook.Add("PreDrawEffects", "ragdollfollower_lines", function()
+	local controller, follower = panelState.controller, panelState.follower
+	if IsValid(controller) and IsValid(follower) and ragdollFollowerEquipped() then
+		render.DrawLine(controller:GetPos(), follower:GetPos(), BLUE, true)
+	end
+end)
 
 TOOL.Information = {
 	{ name = "left", stage = 0 },
