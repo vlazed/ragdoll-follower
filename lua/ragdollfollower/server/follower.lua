@@ -17,8 +17,9 @@ local function updateView()
 	local count = 0
 	for _, follower in ipairs(ents.FindByClass("logic_collision_pair")) do
 		---@cast follower Entity
+		---@type RagdollFollowerConstraintInfo
 		local tab = follower:GetTable()
-		if tab and tab.Type == "RagdollFollower" then
+		if tab and tab.IsRagdollFollower then
 			table.insert(followers, follower)
 			count = count + 1
 		end
@@ -100,13 +101,16 @@ function AddFollower(Ent1, Ent2, Bones, ConstraintType)
 		noCollide = constraint.NoCollide(Ent1, Ent2, 0, 0, false)
 	end
 	constraint.AddConstraintTable(Ent1, noCollide, Ent2)
-	noCollide:SetTable({
+	---@type RagdollFollowerConstraintInfo
+	local c = {
 		Ent1 = Ent1,
 		Ent2 = Ent2,
 		Bones = Bones,
 		ConstraintType = ConstraintType,
 		Type = "RagdollFollower",
-	})
+		IsRagdollFollower = true
+	}
+	noCollide:SetTable(c)
 
 	updateView()
 
@@ -143,10 +147,10 @@ net.Receive("ragdollfollower_select", function(len, ply)
 	local controller = net.ReadEntity()
 	---@type RagdollFollowerConstraintInfo
 	local followerInfo = constraint.FindConstraint(controller, "RagdollFollower")
-	print("selected", followerInfo)
-	print("count", controller:GetPhysicsObjectCount())
-	PrintTable(followerInfo)
-	print(controller)
+	-- print("selected", followerInfo)
+	-- print("count", controller:GetPhysicsObjectCount())
+	-- PrintTable(followerInfo)
+	-- print(controller)
 	if istable(followerInfo) then
 		net.Start("ragdollfollower_select")
 		net.WriteEntity(followerInfo.Ent1)
@@ -160,7 +164,7 @@ end)
 
 hook.Add("EntityRemoved", "RagdollFollower_ConstraintRemoved_Entity", function(ent)
 	-- Remove this constraint from Entity.Constraints table of the constrained entities
-	if ent:IsConstraint() and ent.Type == "RagdollFollower" then
+	if ent:IsConstraint() and ent.IsRagdollFollower then
 		updateView()
 	end
 end)
@@ -171,7 +175,7 @@ net.Receive("ragdollfollower_sync", function(len, ply)
 		---@cast follower Entity
 		---@type RagdollFollowerConstraintInfo
 		local tab = follower:GetTable()
-		if tab and tab.Type == "RagdollFollower" then
+		if tab and tab.IsRagdollFollower then
 			local c = tab.Ent1
 			local f = tab.Ent2
 			for i = 0, c:GetPhysicsObjectCount() - 1 do
@@ -185,6 +189,17 @@ net.Receive("ragdollfollower_sync", function(len, ply)
 				f:ManipulateBonePosition(i, c:GetManipulateBonePosition(i))
 				f:ManipulateBoneScale(i, c:GetManipulateBoneScale(i))
 			end
+
+			f:SetFlexScale(c:GetFlexScale())
+			for i = 0, c:GetFlexNum() - 1 do
+				f:SetFlexWeight(i, c:GetFlexWeight(i))
+			end
+			
+			---@diagnostic disable: undefined-field
+			if c.GetEyeTarget and isfunction(c.GetEyeTarget) then
+				f:SetEyeTarget(c:GetEyeTarget())
+			end
+			---@diagnostic enable: undefined-field
 		end
 	end
 end)

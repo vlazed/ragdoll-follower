@@ -3,6 +3,8 @@
 ---@field Ent2 Entity
 ---@field Bones string[]
 ---@field ConstraintType string
+---@field Type string
+---@field IsRagdollFollower boolean
 
 ---@class PanelChildren
 
