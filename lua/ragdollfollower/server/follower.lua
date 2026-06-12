@@ -120,7 +120,9 @@ end
 function RemoveFollower(Controller)
 	if constraints[Controller] then
 		for _, con in ipairs(constraints[Controller]) do
-			con:Remove()
+			if IsValid(con) then
+				con:Remove()
+			end
 		end
 	end
 	constraints[Controller] = {}
