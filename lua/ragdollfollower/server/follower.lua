@@ -81,10 +81,12 @@ function AddFollower(Ent1, Ent2, Bones, ConstraintType)
 		---We still check if we get a physics object for the source. If the
 		---physics object doesn't exist on the source, then let's remove
 		---it from the bone name
-		local sourcePhysBone = Ent1:GetPhysicsObjectNum(boneToPhysBone(Ent1, Ent1:LookupBone(boneName)))
-		local targetPhysBone = Ent2:GetPhysicsObjectNum(sourcePhysBone and sourcePhysBone:GetIndex() or -1)
+		local sourceIndex = boneToPhysBone(Ent1, Ent1:LookupBone(boneName))
+		local sourcePhysBone = Ent1:GetPhysicsObjectNum(sourceIndex)
+		local targetIndex = boneToPhysBone(Ent2, Ent2:LookupBone(boneName))
+		local targetPhysBone = Ent2:GetPhysicsObjectNum(targetIndex > -1 and targetIndex or sourceIndex)
 		if map then
-			targetPhysBone = sourcePhysBone and map[sourcePhysBone] and Ent2:GetPhysicsObjectNum(map[sourcePhysBone])
+			targetPhysBone = sourcePhysBone and map[sourceIndex] and Ent2:GetPhysicsObjectNum(map[sourceIndex])
 		end
 
 		if IsValid(sourcePhysBone) and IsValid(targetPhysBone) then
@@ -94,7 +96,7 @@ function AddFollower(Ent1, Ent2, Bones, ConstraintType)
 		end
 	end
 
-	print(Ent1, Ent2)
+	-- print(Ent1, Ent2)
 
 	local noCollide = constraint.FindConstraintEntity(Ent1, "RagdollFollower")
 	if not IsValid(noCollide) then
@@ -108,7 +110,7 @@ function AddFollower(Ent1, Ent2, Bones, ConstraintType)
 		Bones = Bones,
 		ConstraintType = ConstraintType,
 		Type = "RagdollFollower",
-		IsRagdollFollower = true
+		IsRagdollFollower = true,
 	}
 	noCollide:SetTable(c)
 
@@ -196,7 +198,7 @@ net.Receive("ragdollfollower_sync", function(len, ply)
 			for i = 0, c:GetFlexNum() - 1 do
 				f:SetFlexWeight(i, c:GetFlexWeight(i))
 			end
-			
+
 			---@diagnostic disable: undefined-field
 			if c.GetEyeTarget and isfunction(c.GetEyeTarget) then
 				f:SetEyeTarget(c:GetEyeTarget())
